@@ -1,0 +1,85 @@
+#!/bin/sh
+# Update for Debian Stretch
+
+aptitude install -y uvccapture mplayer libfreetype6-dev yasm nasm
+# plug usb webcam logitech C920
+dmesg | grep C920
+
+# install ffmpeg
+cat >> /etc/apt/sources.list <<EOF
+deb http://www.deb-multimedia.org stretch main non-free
+deb-src http://www.deb-multimedia.org sid main
+EOF
+
+aptitude update
+aptitude install -y deb-multimedia-keyring
+aptitude update
+aptitude remove ffmpeg
+
+apt-get install -y build-essential libmp3lame-dev libvorbis-dev libtheora-dev libspeex-dev yasm pkg-config libfaac-dev libopenjpeg-dev libx264-dev libopenjp2-7 libopenjp2-7-dev
+
+git clone https://github.com/FFmpeg/FFmpeg.git
+
+cd FFmpeg
+
+./configure --enable-gpl --enable-postproc --enable-swscale --enable-avfilter --enable-libmp3lame --enable-libvorbis --enable-libtheora --enable-libx264 --enable-libspeex --enable-shared --enable-pthreads --enable-libopenjpeg --enable-nonfree --enable-filter=drawtext --enable-version3 --enable-libfreetype
+make
+make install
+
+cat >> /etc/ld.so.conf <<EOF
+/usr/local/lib
+EOF
+
+/sbin/ldconfig
+
+# install nginx
+cat > /etc/apt/sources.list.d/nginx-mainline.list << "EOF"
+deb http://nginx.org/packages/mainline/debian/ jessie nginx
+deb-src http://nginx.org/packages/mainline/debian/ jessie nginx
+EOF
+
+wget http://nginx.org/keys/nginx_signing.key
+apt-key add nginx_signing.key
+
+aptitude update
+aptitude install nginx
+
+# install capture script
+mkdir -p /root/scripts/webcamsvr/
+touch /root/scripts/webcamsvr/capture.sh
+cat >> /root/scripts/webcamsvr/capture.sh <<EOF
+#!/bin/sh
+a=\$(date +\%Y\%m\%d_\%H-\%M-\%S)
+ffmpeg -f video4linux2 -s 1280x720 -i /dev/video0 -vf "drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf: text='D4-118 \: ' \$a: fontcolor=white@1: fontsize=25: box=1: boxcolor=black@0.4: x=10: y=10" -vframes 1 /usr/share/nginx/html/webcam0/webcam0_\$a.jpg -y
+cp -f /usr/share/nginx/html/webcam0/webcam0_\$a.jpg /usr/share/nginx/html/webcam0/webcam0.jpg
+EOF
+
+#install clean capture script
+touch /root/scripts/webcamsvr/clean.sh
+cat >> /root/scripts/webcamsvr/clean.sh <<EOF
+#!/bin/sh
+if [ -d /usr/share/nginx/html/webcam0/ ]
+then
+	find /usr/share/nginx/html/webcam0/ -mtime +10 -type f -delete
+fi
+EOF
+
+chmod 755 /root/scripts/webcamsvr/*.sh
+
+# install webapp
+mkdir -p /usr/share/nginx/html/webcam0/
+touch /usr/share/nginx/html/webcam.html
+cat >> /usr/share/nginx/html/webcam.html <<EOF
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Webcam1 - D4-118</title>
+		<meta http-equiv="refresh" content="5"> <!-- See the difference? -->
+	</head>
+	<body>
+		<p>
+			<img src="webcam0/webcam0.jpg" alt="D4-118-1" />
+		</p>
+	</body>
+</html>
+EOF
