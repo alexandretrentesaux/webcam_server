@@ -16,7 +16,7 @@ aptitude install -y deb-multimedia-keyring
 aptitude update
 aptitude remove ffmpeg
 
-apt-get install -y build-essential libmp3lame-dev libvorbis-dev libtheora-dev libspeex-dev yasm pkg-config libfaac-dev libopenjpeg-dev libx264-dev libopenjp2-7 libopenjp2-7-dev
+apt-get install -y build-essential libmp3lame-dev libvorbis-dev libtheora-dev libspeex-dev yasm pkg-config libfaac-dev libopenjpeg-dev libx264-dev libopenjp2-7 libopenjp2-7-dev libavdevice-dev
 
 git clone https://github.com/FFmpeg/FFmpeg.git
 
